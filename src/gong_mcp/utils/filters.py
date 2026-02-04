@@ -101,4 +101,4 @@ def get_matching_call_ids(
         List of matching call IDs
     """
     filtered, _ = filter_calls_by_emails(calls, emails, domains)
-    return [call.get("id", "") for call in filtered if call.get("id")]
+    return [call.get("metaData", {}).get("id", "") for call in filtered if call.get("metaData", {}).get("id")]

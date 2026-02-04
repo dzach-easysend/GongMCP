@@ -33,7 +33,7 @@ async def get_call_participants(
         all_calls = await client.get_all_calls(from_datetime, to_datetime)
 
         # Build lookup
-        call_lookup = {call.get("id"): call for call in all_calls}
+        call_lookup = {call.get("metaData", {}).get("id"): call for call in all_calls}
 
         # Extract participants for requested calls
         participants_by_call = {}

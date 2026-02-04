@@ -61,7 +61,7 @@ async def analyze_calls(
         # Filter by call_ids if provided
         if call_ids:
             call_id_set = set(call_ids)
-            all_calls = [c for c in all_calls if c.get("id") in call_id_set]
+            all_calls = [c for c in all_calls if c.get("metaData", {}).get("id") in call_id_set]
 
         # Filter by emails/domains
         if emails or domains:
@@ -78,7 +78,7 @@ async def analyze_calls(
             }
 
         # Fetch transcripts
-        call_ids_to_fetch = [c.get("id") for c in all_calls if c.get("id")]
+        call_ids_to_fetch = [c.get("metaData", {}).get("id") for c in all_calls if c.get("metaData", {}).get("id")]
         transcripts_raw = await client.get_multiple_transcripts(call_ids_to_fetch)
 
         # Build transcript lookup
@@ -87,7 +87,7 @@ async def analyze_calls(
         # Build full transcript objects
         transcripts = []
         for call in all_calls:
-            call_id = call.get("id")
+            call_id = call.get("metaData", {}).get("id")
             transcript_data = transcript_lookup.get(call_id, {"error": "No transcript"})
             transcripts.append(build_transcript_json(call, transcript_data))
 

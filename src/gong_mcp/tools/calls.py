@@ -50,12 +50,12 @@ async def list_calls(
         participants = client.extract_participants(call)
 
         formatted_calls.append({
-            "call_id": call.get("id", ""),
+            "call_id": metadata.get("id", ""),
             "title": metadata.get("title", "Untitled"),
             "date": metadata.get("started", ""),
             "duration_seconds": metadata.get("duration", 0),
             "participants": participants,
-            "primary_user_id": call.get("primaryUserId", ""),
+            "primary_user_id": metadata.get("primaryUserId", ""),
         })
 
     return {
@@ -91,7 +91,7 @@ async def get_transcript(
 
         call_data = None
         for call in all_calls:
-            if call.get("id") == call_id:
+            if call.get("metaData", {}).get("id") == call_id:
                 call_data = call
                 break
 
@@ -178,12 +178,12 @@ async def search_calls(
         participants = GongClient().extract_participants(call)
 
         formatted_calls.append({
-            "call_id": call.get("id", ""),
+            "call_id": metadata.get("id", ""),
             "title": metadata.get("title", "Untitled"),
             "date": metadata.get("started", ""),
             "duration_seconds": metadata.get("duration", 0),
             "participants": participants,
-            "primary_user_id": call.get("primaryUserId", ""),
+            "primary_user_id": metadata.get("primaryUserId", ""),
         })
 
     return {

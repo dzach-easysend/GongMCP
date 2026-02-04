@@ -174,7 +174,7 @@ def build_transcript_json(call_data: dict, transcript_data: dict) -> dict:
     }
 
     # Metadata
-    output["metadata"]["call_id"] = call_data.get("id", "")
+    output["metadata"]["call_id"] = metadata.get("id", "")
     output["metadata"]["title"] = metadata.get("title", "Untitled Call")
     output["metadata"]["date"] = metadata.get("started", "")
     output["metadata"]["date_formatted"] = format_iso_date(metadata.get("started", ""))
