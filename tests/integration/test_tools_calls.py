@@ -1,9 +1,6 @@
 """Integration tests for call-related tools."""
 
 import pytest
-import pytest_asyncio
-from httpx import Response
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from gong_mcp.tools.calls import get_transcript, list_calls, search_calls
 
@@ -15,15 +12,15 @@ class TestListCalls:
 
     async def test_list_calls_default_range(self, mock_httpx_client, sample_calls_list):
         """Test list_calls with default date range."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": sample_calls_list,
                 "records": {"cursor": None, "currentPageSize": len(sample_calls_list)},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await list_calls()
 
@@ -35,15 +32,15 @@ class TestListCalls:
 
     async def test_list_calls_custom_date_range(self, mock_httpx_client, sample_calls_list):
         """Test list_calls with custom date range."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": sample_calls_list,
                 "records": {"cursor": None, "currentPageSize": len(sample_calls_list)},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await list_calls(
             from_date="2024-01-01",
@@ -57,15 +54,15 @@ class TestListCalls:
 
     async def test_list_calls_limit(self, mock_httpx_client, sample_calls_list):
         """Test that list_calls respects limit."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
-                "calls": sample_calls_list * 2,  # 10 calls
+                "calls": sample_calls_list * 2,
                 "records": {"cursor": None, "currentPageSize": 10},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await list_calls(limit=3)
 
@@ -74,15 +71,15 @@ class TestListCalls:
 
     async def test_list_calls_participant_metadata(self, mock_httpx_client, sample_calls_list):
         """Test that list_calls includes participant metadata."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": sample_calls_list,
                 "records": {"cursor": None, "currentPageSize": len(sample_calls_list)},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await list_calls()
 
@@ -100,22 +97,22 @@ class TestGetTranscript:
 
     async def test_get_transcript_text_format(self, mock_httpx_client, sample_call_data, sample_transcript_data):
         """Test get_transcript with text format."""
+        mock_httpx_client.reset()
         # Mock search calls response
-        search_response = Response(
-            status_code=200,
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": [sample_call_data],
                 "records": {"cursor": None, "currentPageSize": 1},
             },
-            request=MagicMock(),
         )
         # Mock transcript response
-        transcript_response = Response(
-            status_code=200,
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/transcript",
             json={"callTranscripts": [sample_transcript_data]},
-            request=MagicMock(),
         )
-        mock_httpx_client.post.side_effect = [search_response, transcript_response]
 
         result = await get_transcript("call_12345", format="text")
 
@@ -126,20 +123,20 @@ class TestGetTranscript:
 
     async def test_get_transcript_json_format(self, mock_httpx_client, sample_call_data, sample_transcript_data):
         """Test get_transcript with JSON format."""
-        search_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": [sample_call_data],
                 "records": {"cursor": None, "currentPageSize": 1},
             },
-            request=MagicMock(),
         )
-        transcript_response = Response(
-            status_code=200,
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/transcript",
             json={"callTranscripts": [sample_transcript_data]},
-            request=MagicMock(),
         )
-        mock_httpx_client.post.side_effect = [search_response, transcript_response]
 
         result = await get_transcript("call_12345", format="json")
 
@@ -149,12 +146,12 @@ class TestGetTranscript:
 
     async def test_get_transcript_call_not_found(self, mock_httpx_client):
         """Test get_transcript when call not found."""
-        search_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={"calls": [], "records": {"cursor": None, "currentPageSize": 0}},
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = search_response
 
         result = await get_transcript("nonexistent_call")
 
@@ -169,15 +166,15 @@ class TestSearchCalls:
 
     async def test_search_calls_by_query(self, mock_httpx_client, sample_calls_list):
         """Test search_calls with text query."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": sample_calls_list,
                 "records": {"cursor": None, "currentPageSize": len(sample_calls_list)},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await search_calls(query="Call")
 
@@ -187,15 +184,15 @@ class TestSearchCalls:
 
     async def test_search_calls_by_email(self, mock_httpx_client, sample_calls_list):
         """Test search_calls with email filter."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": sample_calls_list,
                 "records": {"cursor": None, "currentPageSize": len(sample_calls_list)},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await search_calls(emails=["jane@acme.com"])
 
@@ -205,15 +202,15 @@ class TestSearchCalls:
 
     async def test_search_calls_by_domain(self, mock_httpx_client, sample_calls_list):
         """Test search_calls with domain filter."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": sample_calls_list,
                 "records": {"cursor": None, "currentPageSize": len(sample_calls_list)},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await search_calls(domains=["acme.com"])
 
@@ -222,15 +219,15 @@ class TestSearchCalls:
 
     async def test_search_calls_combined_filters(self, mock_httpx_client, sample_calls_list):
         """Test search_calls with combined filters."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": sample_calls_list,
                 "records": {"cursor": None, "currentPageSize": len(sample_calls_list)},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await search_calls(
             query="Call",
@@ -247,15 +244,15 @@ class TestSearchCalls:
 
     async def test_search_calls_default_date_range(self, mock_httpx_client, sample_calls_list):
         """Test search_calls with default date range (30 days)."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": sample_calls_list,
                 "records": {"cursor": None, "currentPageSize": len(sample_calls_list)},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await search_calls()
 

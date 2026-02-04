@@ -4,13 +4,10 @@ Pytest configuration and shared fixtures for Gong MCP Server tests.
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
-import pytest_asyncio
-from httpx import AsyncClient, Response
-
-from gong_mcp.gong_client import GongClient
+from httpx import Response
 
 
 # ============================================================================
@@ -117,50 +114,18 @@ def sample_calls_list(sample_call_data):
 # Mock HTTP Client Fixtures
 # ============================================================================
 
-@pytest_asyncio.fixture
-async def mock_httpx_client(monkeypatch):
-    """Mock httpx.AsyncClient for testing."""
-    mock_client = AsyncMock(spec=AsyncClient)
-
-    async def mock_post(url, **kwargs):
-        """Mock POST request handler."""
-        # Default successful response
-        response_data = {"calls": [], "records": {}}
-
-        # Customize based on URL
-        if "/calls/extensive" in url:
-            response_data = {
-                "calls": [],
-                "records": {
-                    "cursor": None,
-                    "currentPageSize": 0,
-                },
-            }
-        elif "/calls/transcript" in url:
-            response_data = {
-                "callTranscripts": [],
-            }
-
-        response = Response(
-            status_code=200,
-            json=response_data,
-            request=MagicMock(),
-        )
-        return response
-
-    mock_client.post = mock_post
-    mock_client.aclose = AsyncMock()
-
-    # Patch GongClient to use mock
-    original_init = GongClient.__init__
-
-    def mock_init(self, access_key=None, access_key_secret=None):
-        original_init(self, access_key, access_key_secret)
-        self._client = mock_client
-
-    monkeypatch.setattr(GongClient, "__init__", mock_init)
-
-    return mock_client
+@pytest.fixture
+def mock_httpx_client(httpx_mock):
+    """Mock httpx requests using pytest-httpx.
+    
+    This fixture properly intercepts all HTTP calls made by httpx.AsyncClient.
+    Tests should add their own mock responses using httpx_mock.add_response().
+    """
+    # Configure to allow unused responses (some tests may not use all mocked responses)
+    httpx_mock.reset()
+    # Allow responses to be registered but not necessarily used
+    # This is useful when tests conditionally make API calls
+    return httpx_mock
 
 
 @pytest.fixture

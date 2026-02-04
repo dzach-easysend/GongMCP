@@ -1,9 +1,6 @@
 """Integration tests for participant tools."""
 
 import pytest
-import pytest_asyncio
-from httpx import Response
-from unittest.mock import MagicMock
 
 from gong_mcp.tools.participants import get_call_participants
 
@@ -15,15 +12,15 @@ class TestGetCallParticipants:
 
     async def test_get_call_participants_single_call(self, mock_httpx_client, sample_call_data):
         """Test getting participants for a single call."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": [sample_call_data],
                 "records": {"cursor": None, "currentPageSize": 1},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await get_call_participants(["call_12345"])
 
@@ -38,15 +35,15 @@ class TestGetCallParticipants:
         for i, call in enumerate(calls):
             call["id"] = f"call_{i}"
 
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": calls,
                 "records": {"cursor": None, "currentPageSize": len(calls)},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await get_call_participants(["call_0", "call_1", "call_2"])
 
@@ -55,12 +52,12 @@ class TestGetCallParticipants:
 
     async def test_get_call_participants_not_found(self, mock_httpx_client):
         """Test getting participants for non-existent calls."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={"calls": [], "records": {"cursor": None, "currentPageSize": 0}},
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await get_call_participants(["nonexistent_call"])
 
@@ -70,15 +67,15 @@ class TestGetCallParticipants:
 
     async def test_get_call_participants_mixed(self, mock_httpx_client, sample_call_data):
         """Test getting participants for mix of found and not found calls."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": [sample_call_data],
                 "records": {"cursor": None, "currentPageSize": 1},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await get_call_participants(["call_12345", "nonexistent_call"])
 
@@ -96,15 +93,15 @@ class TestGetCallParticipants:
 
     async def test_get_call_participants_structure(self, mock_httpx_client, sample_call_data):
         """Test that participant structure is correct."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": [sample_call_data],
                 "records": {"cursor": None, "currentPageSize": 1},
             },
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await get_call_participants(["call_12345"])
 

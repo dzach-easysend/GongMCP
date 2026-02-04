@@ -1,9 +1,6 @@
 """Integration tests for analysis tools."""
 
 import pytest
-import pytest_asyncio
-from httpx import Response
-from unittest.mock import MagicMock, patch
 
 from gong_mcp.tools.analysis import analyze_calls, get_job_results, get_job_status
 
@@ -17,22 +14,20 @@ class TestAnalyzeCalls:
         """Test analyze_calls with small dataset (direct mode)."""
         monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
         
-        # Mock search calls
-        search_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": [sample_call_data],
                 "records": {"cursor": None, "currentPageSize": 1},
             },
-            request=MagicMock(),
         )
-        # Mock transcript
-        transcript_response = Response(
-            status_code=200,
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/transcript",
             json={"callTranscripts": [sample_transcript_data]},
-            request=MagicMock(),
         )
-        mock_httpx_client.post.side_effect = [search_response, transcript_response]
 
         result = await analyze_calls(
             from_date="2024-01-01",
@@ -47,9 +42,8 @@ class TestAnalyzeCalls:
 
     async def test_analyze_calls_async_mode(self, mock_httpx_client, sample_call_data, sample_transcript_data, monkeypatch, temp_jobs_dir):
         """Test analyze_calls with large dataset (async mode)."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "1000")  # Low threshold to force async
+        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "1000")
         
-        # Create large transcript
         large_transcript = sample_transcript_data.copy()
         large_transcript["transcript"] = [
             {
@@ -58,22 +52,20 @@ class TestAnalyzeCalls:
             }
         ]
         
-        # Mock search calls
-        search_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": [sample_call_data],
                 "records": {"cursor": None, "currentPageSize": 1},
             },
-            request=MagicMock(),
         )
-        # Mock transcript
-        transcript_response = Response(
-            status_code=200,
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/transcript",
             json={"callTranscripts": [large_transcript]},
-            request=MagicMock(),
         )
-        mock_httpx_client.post.side_effect = [search_response, transcript_response]
 
         result = await analyze_calls(
             from_date="2024-01-01",
@@ -90,20 +82,20 @@ class TestAnalyzeCalls:
         """Test analyze_calls with specific call IDs."""
         monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
         
-        search_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={
                 "calls": [sample_call_data],
                 "records": {"cursor": None, "currentPageSize": 1},
             },
-            request=MagicMock(),
         )
-        transcript_response = Response(
-            status_code=200,
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/transcript",
             json={"callTranscripts": [sample_transcript_data]},
-            request=MagicMock(),
         )
-        mock_httpx_client.post.side_effect = [search_response, transcript_response]
 
         result = await analyze_calls(
             call_ids=["call_12345"],
@@ -115,12 +107,12 @@ class TestAnalyzeCalls:
 
     async def test_analyze_calls_no_calls_found(self, mock_httpx_client):
         """Test analyze_calls when no calls match criteria."""
-        mock_response = Response(
-            status_code=200,
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
             json={"calls": [], "records": {"cursor": None, "currentPageSize": 0}},
-            request=MagicMock(),
         )
-        mock_httpx_client.post.return_value = mock_response
 
         result = await analyze_calls(
             from_date="2024-01-01",
