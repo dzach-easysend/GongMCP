@@ -20,7 +20,77 @@ A Model Context Protocol (MCP) server that exposes Gong call data to Claude with
 - `get_job_status` - Check async job progress
 - `get_job_results` - Get completed analysis results
 
-## Installation
+## Quick Start (For End Users)
+
+> **📘 New to this?** Check out [INSTALL.md](INSTALL.md) for a super simple, step-by-step guide with screenshots and troubleshooting tips!
+
+### Step 1: Install the Package
+
+**Easy way:**
+- **Windows:** Double-click `install.bat`
+- **Mac/Linux:** Double-click `install.sh` or run `./install.sh` in Terminal
+
+**Or install manually:**
+- If you received a `.whl` file: `pip install gong_mcp-0.1.0-py3-none-any.whl`
+- Or from PyPI: `pip install gong-mcp`
+
+### Step 2: Get Your API Keys
+
+You'll need three API keys:
+
+1. **Gong Access Key** - Get this from your Gong account settings
+2. **Gong Access Key Secret** - Also from your Gong account settings  
+3. **Anthropic API Key** - Get this from [Anthropic Console](https://console.anthropic.com/) (optional, for batch analysis)
+
+### Step 3: Configure Claude Desktop
+
+1. Find the Claude Desktop config file:
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+   - **Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Linux:** `~/.config/Claude/claude_desktop_config.json`
+
+2. Open the file in any text editor (Notepad, TextEdit, etc.)
+
+3. Add this configuration (replace the placeholder values with your actual keys):
+
+```json
+{
+  "mcpServers": {
+    "gong": {
+      "command": "gong-mcp",
+      "env": {
+        "GONG_ACCESS_KEY": "paste_your_gong_access_key_here",
+        "GONG_ACCESS_KEY_SECRET": "paste_your_gong_secret_here",
+        "ANTHROPIC_API_KEY": "paste_your_anthropic_key_here"
+      }
+    }
+  }
+}
+```
+
+4. Save the file and restart Claude Desktop
+
+That's it! You can now ask Claude about your Gong calls.
+
+### Troubleshooting
+
+**"Command not found: gong-mcp"**
+- Make sure you installed the package: `pip install gong-mcp`
+- Try `pip3` instead of `pip`
+- Restart your terminal/command prompt
+
+**"Module not found" errors**
+- Make sure Python 3.10 or higher is installed
+- Reinstall: `pip install --upgrade gong-mcp`
+
+**Still having issues?** See [INSTALL.md](INSTALL.md) for detailed troubleshooting steps.
+
+---
+
+## Advanced Installation (For Developers)
+
+<details>
+<summary>Click to expand developer installation instructions</summary>
 
 ### Prerequisites
 - **Python 3.10+** (required - the MCP SDK requires Python 3.10 or later)
@@ -36,7 +106,7 @@ If you need Python 3.10+, install via:
 - macOS: `brew install python@3.12`
 - Or use [pyenv](https://github.com/pyenv/pyenv): `pyenv install 3.12`
 
-### Setup
+### Setup from Source
 
 ```bash
 # Clone or navigate to the project
@@ -54,7 +124,7 @@ pip install -e .
 pip install mcp httpx python-dotenv anthropic
 ```
 
-### Configuration
+### Configuration with .env File
 
 Create a `.env` file:
 
@@ -70,9 +140,9 @@ GONG_ACCESS_KEY_SECRET=your_gong_access_key_secret
 ANTHROPIC_API_KEY=your_anthropic_api_key  # For batch analysis
 ```
 
-## Claude Desktop Integration
+### Claude Desktop Integration (Development Mode)
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+For development, you can run from source:
 
 ```json
 {
@@ -90,7 +160,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
-Restart Claude Desktop to load the server.
+</details>
 
 ## Usage Examples
 
@@ -190,6 +260,9 @@ analyze_calls(
 
 ## Development
 
+<details>
+<summary>Click to expand development commands</summary>
+
 ```bash
 # Run the server directly
 uv run gong-mcp
@@ -197,6 +270,45 @@ uv run gong-mcp
 # Run with Python
 python -m gong_mcp.server
 ```
+
+</details>
+
+## Packaging and Distribution
+
+<details>
+<summary>Click to expand packaging instructions for maintainers</summary>
+
+To package this MCP server for distribution without exposing secrets:
+
+**Run all commands from the project root directory** (where this README is located).
+
+1. **Ensure no secrets are committed:**
+   - All `.env` files are excluded via `.gitignore`
+   - No hardcoded API keys in source code
+   - Only `.example` files contain placeholder values
+
+2. **Build the package:**
+   ```bash
+   pip install build
+   python -m build
+   ```
+
+3. **Verify package contents:**
+   ```bash
+   # Check that no secrets are included
+   ./verify_package.sh
+   # or manually:
+   tar -tzf dist/gong_mcp-*.tar.gz | grep -E '\.env$|secret|key'
+   ```
+
+4. **Distribute:**
+   - Share `dist/gong_mcp-*.whl` or `dist/gong_mcp-*.tar.gz`
+   - Include `README.md` and `PACKAGING.md` for installation instructions
+   - Users must configure their own `.env` file with their credentials
+
+See [PACKAGING.md](PACKAGING.md) for detailed packaging instructions.
+
+</details>
 
 ## License
 

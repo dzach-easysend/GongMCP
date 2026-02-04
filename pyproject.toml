@@ -10,6 +10,19 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "anthropic>=0.40.0",
 ]
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+keywords = ["mcp", "gong", "claude", "api", "calls", "transcripts"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 
 [project.scripts]
 gong-mcp = "gong_mcp.server:main"
@@ -20,6 +33,39 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gong_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/README.md",
+    "/INSTALL.md",
+    "/LICENSE",
+    "/.env.example",
+    "/claude_desktop_config.json.example",
+    "/install.sh",
+    "/install.bat",
+    "/MANIFEST.in",
+    "/pyproject.toml",
+]
+exclude = [
+    "/.env",
+    "/.env.*",
+    "/*.key",
+    "/*.pem",
+    "/*.secret",
+    "/secrets.json",
+    "/config.json",
+    "/claude_desktop_config.json",
+    "/venv",
+    "/env",
+    "/.venv",
+    "/dist",
+    "/build",
+    "/.pytest_cache",
+    "/htmlcov",
+    "/.coverage",
+    "/jobs/*.json",
+]
 
 [tool.ruff]
 line-length = 100

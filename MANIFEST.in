@@ -1,0 +1,50 @@
+# Include necessary files
+include README.md
+include INSTALL.md
+include LICENSE
+include .env.example
+include claude_desktop_config.json.example
+include pyproject.toml
+include install.sh
+include install.bat
+
+# Include source code
+recursive-include src *.py
+
+# Exclude sensitive files
+global-exclude .env
+global-exclude .env.*
+global-exclude *.key
+global-exclude *.pem
+global-exclude *.secret
+global-exclude secrets.json
+global-exclude config.json
+
+# Exclude development files
+global-exclude __pycache__
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude .pytest_cache
+global-exclude .coverage
+global-exclude htmlcov
+global-exclude .tox
+global-exclude venv
+global-exclude env
+global-exclude .venv
+global-exclude dist
+global-exclude build
+global-exclude *.egg-info
+
+# Exclude IDE files
+global-exclude .vscode
+global-exclude .idea
+global-exclude *.swp
+global-exclude *.swo
+
+# Exclude OS files
+global-exclude .DS_Store
+global-exclude Thumbs.db
+
+# Exclude job data
+global-exclude jobs/*.json
