@@ -114,24 +114,26 @@ For internal/private distribution:
 twine upload --repository-url https://your-private-pypi.com/upload dist/*
 ```
 
-### 3. Direct File Distribution
+### 3. Direct File Distribution (Recommended for Non-Technical Users)
 
-Share the built package files directly:
+Share these **4 files together**:
 
 ```bash
-# Share these files:
-# - dist/gong_mcp-0.1.0.tar.gz
-# - dist/gong_mcp-0.1.0-py3-none-any.whl
-# - README.md
-# - PACKAGING.md (this file)
+# Required files to share:
+# - dist/gong_mcp-0.1.0-py3-none-any.whl (the package)
+# - install.bat (Windows installer script)
+# - install.sh (Mac/Linux installer script)
+# - INSTALL.md (simple installation instructions)
 ```
 
-Users can install with:
-```bash
-pip install gong_mcp-0.1.0-py3-none-any.whl
-# or
-pip install gong_mcp-0.1.0.tar.gz
-```
+**Easiest way:** Put all 4 files in a folder, zip it, and share the zip file.
+
+Users just need to:
+1. Extract the files (if shared as zip)
+2. Double-click `install.bat` (Windows) or `install.sh` (Mac/Linux)
+3. Follow `INSTALL.md` for configuration
+
+See [HOW_TO_SHARE.md](HOW_TO_SHARE.md) for simple distribution instructions.
 
 ### 4. Git Repository Distribution
 
