@@ -14,13 +14,20 @@ from httpx import Response
 # Environment and Configuration Fixtures
 # ============================================================================
 
+@pytest.fixture(autouse=True)
+def _gong_config_for_tests(monkeypatch):
+    """Set dummy Gong credentials so tools pass check_gong_config() unless a test explicitly unsets them."""
+    monkeypatch.setenv("GONG_ACCESS_KEY", "test_access_key")
+    monkeypatch.setenv("GONG_ACCESS_KEY_SECRET", "test_secret")
+
+
 @pytest.fixture
 def mock_env_vars(monkeypatch):
     """Mock environment variables for testing."""
     monkeypatch.setenv("GONG_ACCESS_KEY", "test_access_key")
     monkeypatch.setenv("GONG_ACCESS_KEY_SECRET", "test_secret")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test_anthropic_key")
-    monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+    monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K tokens
     yield
     # Cleanup handled by monkeypatch
 
@@ -42,11 +49,12 @@ def temp_jobs_dir(tmp_path, monkeypatch):
 def sample_call_data():
     """Sample call data from Gong API."""
     return {
-        "id": "call_12345",
         "metaData": {
+            "id": "call_12345",  # ID is inside metaData per Gong API
             "title": "Sales Call with Acme Corp",
             "started": "2024-01-15T10:30:00Z",
             "duration": 1800,  # 30 minutes
+            "primaryUserId": "user_123",
         },
         "parties": [
             {
@@ -62,7 +70,6 @@ def sample_call_data():
                 "speakerId": "speaker_2",
             },
         ],
-        "primaryUserId": "user_123",
     }
 
 
@@ -101,10 +108,11 @@ def sample_transcript_data():
 @pytest.fixture
 def sample_calls_list(sample_call_data):
     """List of sample calls for pagination testing."""
+    import copy
     calls = []
     for i in range(5):
-        call = sample_call_data.copy()
-        call["id"] = f"call_{i}"
+        call = copy.deepcopy(sample_call_data)  # Deep copy to avoid shared references
+        call["metaData"]["id"] = f"call_{i}"  # ID is inside metaData
         call["metaData"]["title"] = f"Call {i}"
         calls.append(call)
     return calls

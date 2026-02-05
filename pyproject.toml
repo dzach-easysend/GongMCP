@@ -38,12 +38,10 @@ packages = ["src/gong_mcp"]
 include = [
     "/src",
     "/README.md",
-    "/INSTALL.md",
     "/LICENSE",
     "/.env.example",
     "/claude_desktop_config.json.example",
-    "/install.sh",
-    "/install.bat",
+    "/install",
     "/MANIFEST.in",
     "/pyproject.toml",
 ]

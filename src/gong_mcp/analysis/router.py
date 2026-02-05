@@ -12,15 +12,43 @@ import os
 CLAUDE_CONTEXT_LIMIT = 180_000
 PROMPT_OVERHEAD = 10_000
 RESPONSE_BUFFER = 20_000
-DEFAULT_DIRECT_THRESHOLD = 150_000
+# Default threshold for direct mode (in thousands of tokens)
+# Can be overridden via DIRECT_LLM_TOKEN_LIMIT env var (if Cursor passes it)
+# Value of 40 means 40K tokens (40,000). Value <= 0 means always direct mode.
+DEFAULT_DIRECT_LLM_TOKEN_LIMIT_K = 40  # 40K tokens - triggers async for larger datasets
 
 
-def get_direct_threshold() -> int:
-    """Get the token threshold for direct mode from environment or default."""
+def get_direct_threshold() -> int | float:
+    """Get the token threshold for direct mode.
+
+    DIRECT_LLM_TOKEN_LIMIT is specified in K (thousands of tokens).
+    e.g., 150 means 150,000 tokens.
+
+    Values <= 0 mean always use direct mode (never use Anthropic API).
+
+    Returns:
+        Token threshold, or float('inf') if always direct mode.
+    """
+    # #region agent log
+    import json as _json; _log_path = "/Users/dannyzach/Documents/gong-mcp-server/.cursor/debug.log"
+    _raw_env = os.getenv("DIRECT_LLM_TOKEN_LIMIT") or os.getenv("GONG_TOKEN_LIMIT")
+    _all_env_keys = [k for k in os.environ.keys() if "DIRECT" in k or "LLM" in k or "GONG" in k or "ANTHROPIC" in k or "TOKEN" in k]
+    with open(_log_path, "a") as _f: _f.write(_json.dumps({"hypothesisId": "F", "location": "router.py:get_direct_threshold:entry", "message": "Raw env value", "data": {"raw_env": _raw_env, "related_env_keys": _all_env_keys, "default": DEFAULT_DIRECT_LLM_TOKEN_LIMIT_K}, "timestamp": __import__("time").time(), "sessionId": "debug-session"}) + "\n")
+    # #endregion
     try:
-        return int(os.getenv("DIRECT_TOKEN_THRESHOLD", DEFAULT_DIRECT_THRESHOLD))
-    except ValueError:
-        return DEFAULT_DIRECT_THRESHOLD
+        # Check both env var names (GONG_TOKEN_LIMIT as fallback for Cursor compatibility)
+        limit_k = int(os.getenv("DIRECT_LLM_TOKEN_LIMIT") or os.getenv("GONG_TOKEN_LIMIT") or DEFAULT_DIRECT_LLM_TOKEN_LIMIT_K)
+        # #region agent log
+        with open(_log_path, "a") as _f: _f.write(_json.dumps({"hypothesisId": "C", "location": "router.py:get_direct_threshold:parsed", "message": "Parsed limit_k", "data": {"limit_k": limit_k, "threshold": limit_k * 1000 if limit_k > 0 else "inf"}, "timestamp": __import__("time").time(), "sessionId": "debug-session"}) + "\n")
+        # #endregion
+        if limit_k <= 0:
+            return float("inf")  # Always direct mode
+        return limit_k * 1000
+    except ValueError as e:
+        # #region agent log
+        with open(_log_path, "a") as _f: _f.write(_json.dumps({"hypothesisId": "C", "location": "router.py:get_direct_threshold:error", "message": "ValueError parsing", "data": {"error": str(e)}, "timestamp": __import__("time").time(), "sessionId": "debug-session"}) + "\n")
+        # #endregion
+        return DEFAULT_DIRECT_LLM_TOKEN_LIMIT_K * 1000
 
 
 def estimate_tokens(text: str) -> int:
@@ -123,12 +151,20 @@ def get_routing_decision(transcripts: list[dict]) -> dict:
     threshold = get_direct_threshold()
 
     if total_tokens < threshold:
+        # Handle infinity threshold (always direct mode)
+        if threshold == float("inf"):
+            threshold_display = "unlimited"
+            reason = f"Direct mode forced (DIRECT_LLM_TOKEN_LIMIT <= 0)"
+        else:
+            threshold_display = int(threshold)
+            reason = f"Tokens ({total_tokens:,}) under threshold ({threshold_display:,})"
+
         return {
             "mode": "direct",
             "call_count": call_count,
             "total_tokens": total_tokens,
-            "threshold": threshold,
-            "reason": f"Tokens ({total_tokens:,}) under threshold ({threshold:,})",
+            "threshold": threshold_display,
+            "reason": reason,
         }
 
     batch_count = estimate_batch_count(total_tokens)

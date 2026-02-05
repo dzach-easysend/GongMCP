@@ -4,17 +4,17 @@ When sharing the Gong MCP Server with others, include these **4 files**:
 
 ## Files to Share
 
-1. **`gong_mcp-0.1.0-py3-none-any.whl`** - The package file (the actual software)
-2. **`install.bat`** - Installation script for Windows
-3. **`install.sh`** - Installation script for Mac/Linux
-4. **`INSTALL.md`** - Simple installation instructions
+1. **`gong_mcp-0.1.0-py3-none-any.whl`** - The package file (from `dist/`)
+2. **`install.bat`** - Installation script for Windows (this folder)
+3. **`install.sh`** - Installation script for Mac/Linux (this folder)
+4. **`INSTALL.md`** - Simple installation instructions (this folder)
 
 ## How to Share
 
 ### Option 1: Zip File (Easiest)
 
-1. Put all 4 files in a folder
-2. Zip the folder
+1. Copy the `.whl` file from `dist/` into this `install/` folder
+2. Zip the entire `install/` folder
 3. Share the zip file
 
 **Name it something like:** `gong-mcp-server-v0.1.0.zip`

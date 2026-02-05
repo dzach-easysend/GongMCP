@@ -20,6 +20,14 @@ from .tools.analysis import analyze_calls, get_job_status, get_job_results
 # Load environment variables
 load_dotenv()
 
+# #region agent log
+import json as _json; _log_path = "/Users/dannyzach/Documents/gong-mcp-server/.cursor/debug.log"
+_env_snapshot = {k: (v[:20] + "..." if len(v) > 20 else v) for k, v in os.environ.items() if any(x in k for x in ["DIRECT", "LLM", "GONG", "ANTHROPIC", "TOKEN"])}
+_direct_value = os.environ.get("DIRECT_LLM_TOKEN_LIMIT", "<<NOT SET>>")
+_gong_token = os.environ.get("GONG_TOKEN_LIMIT", "<<NOT SET>>")
+with open(_log_path, "a") as _f: _f.write(_json.dumps({"hypothesisId": "F", "location": "server.py:startup", "message": "Server startup env snapshot", "data": {"relevant_env": _env_snapshot, "DIRECT_LLM_TOKEN_LIMIT": _direct_value, "GONG_TOKEN_LIMIT": _gong_token, "pid": os.getpid()}, "timestamp": __import__("time").time(), "sessionId": "debug-session"}) + "\n")
+# #endregion
+
 # Create MCP server
 server = Server("gong-mcp")
 

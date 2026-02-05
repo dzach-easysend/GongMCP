@@ -10,6 +10,17 @@ from gong_mcp.tools.participants import get_call_participants
 class TestGetCallParticipants:
     """Test get_call_participants tool."""
 
+    async def test_get_call_participants_returns_error_when_gong_keys_missing(self, monkeypatch):
+        """When Gong credentials are missing, return informative error (no API call)."""
+        monkeypatch.delenv("GONG_ACCESS_KEY", raising=False)
+        monkeypatch.delenv("GONG_ACCESS_KEY_SECRET", raising=False)
+
+        result = await get_call_participants(["call_12345"])
+
+        assert "error" in result
+        assert "GONG_ACCESS_KEY" in result["error"]
+        assert "participants_by_call" not in result or result.get("participants_by_call") == {}
+
     async def test_get_call_participants_single_call(self, mock_httpx_client, sample_call_data):
         """Test getting participants for a single call."""
         mock_httpx_client.reset()
@@ -31,9 +42,10 @@ class TestGetCallParticipants:
 
     async def test_get_call_participants_multiple_calls(self, mock_httpx_client, sample_call_data):
         """Test getting participants for multiple calls."""
-        calls = [sample_call_data.copy() for _ in range(3)]
+        import copy
+        calls = [copy.deepcopy(sample_call_data) for _ in range(3)]
         for i, call in enumerate(calls):
-            call["id"] = f"call_{i}"
+            call["metaData"]["id"] = f"call_{i}"
 
         mock_httpx_client.reset()
         mock_httpx_client.add_response(

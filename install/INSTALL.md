@@ -99,7 +99,8 @@ Cursor uses its own MCP settings. For full Cursor setup (including from-source a
       "env": {
         "GONG_ACCESS_KEY": "paste_your_gong_access_key_here",
         "GONG_ACCESS_KEY_SECRET": "paste_your_gong_secret_here",
-        "ANTHROPIC_API_KEY": "paste_your_anthropic_key_here"
+        "ANTHROPIC_API_KEY": "paste_your_anthropic_key_here",
+        "DIRECT_LLM_TOKEN_LIMIT": "100"
       }
     }
   }
@@ -117,7 +118,8 @@ Cursor uses its own MCP settings. For full Cursor setup (including from-source a
       "env": {
         "GONG_ACCESS_KEY": "paste_your_gong_access_key_here",
         "GONG_ACCESS_KEY_SECRET": "paste_your_gong_secret_here",
-        "ANTHROPIC_API_KEY": "paste_your_anthropic_key_here"
+        "ANTHROPIC_API_KEY": "paste_your_anthropic_key_here",
+        "DIRECT_LLM_TOKEN_LIMIT": "100"
       }
     }
   }
@@ -128,6 +130,7 @@ Cursor uses its own MCP settings. For full Cursor setup (including from-source a
    - `paste_your_gong_access_key_here` → your Gong Access Key
    - `paste_your_gong_secret_here` → your Gong Access Key Secret
    - `paste_your_anthropic_key_here` → your Anthropic key (or remove this line if you don’t use batch analysis)
+   - `DIRECT_LLM_TOKEN_LIMIT` → Token threshold in K (default 100 = 100K tokens). Set to 0 to always use direct mode.
 
 4. **Save the file**
 
@@ -178,5 +181,5 @@ If you see your calls, you’re done.
 
 ## Need more help?
 
-- **Claude Desktop:** See the main [README.md](README.md)
+- **Claude Desktop:** See the main [README.md](../README.md)
 - **Cursor:** See [CURSOR_SETUP.md](CURSOR_SETUP.md) for Cursor-specific setup and cross-MCP usage

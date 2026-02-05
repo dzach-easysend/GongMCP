@@ -32,8 +32,9 @@ GONG_ACCESS_KEY_SECRET=your_gong_access_key_secret_here
 # Anthropic API Key (optional, for batch analysis)
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
-# Optional: Token threshold for smart routing (default: 150000)
-# DIRECT_TOKEN_THRESHOLD=150000
+# Optional: Token limit for direct LLM mode in K (thousands). Default: 150 (150K tokens)
+# Values <= 0 mean always pass transcripts to LLM (never use Anthropic API)
+# DIRECT_LLM_TOKEN_LIMIT=150
 ```
 
 **Note:** The `.env.example` file should be included in the package, but the actual `.env` file should NEVER be included.
@@ -121,17 +122,17 @@ Share these **4 files together**:
 ```bash
 # Required files to share:
 # - dist/gong_mcp-0.1.0-py3-none-any.whl (the package)
-# - install.bat (Windows installer script)
-# - install.sh (Mac/Linux installer script)
-# - INSTALL.md (simple installation instructions)
+# - install/install.bat (Windows installer script)
+# - install/install.sh (Mac/Linux installer script)
+# - install/INSTALL.md (simple installation instructions)
 ```
 
 **Easiest way:** Put all 4 files in a folder, zip it, and share the zip file.
 
 Users just need to:
 1. Extract the files (if shared as zip)
-2. Double-click `install.bat` (Windows) or `install.sh` (Mac/Linux)
-3. Follow `INSTALL.md` for configuration
+2. Double-click `install/install.bat` (Windows) or `install/install.sh` (Mac/Linux)
+3. Follow `install/INSTALL.md` for configuration
 
 See [HOW_TO_SHARE.md](HOW_TO_SHARE.md) for simple distribution instructions.
 

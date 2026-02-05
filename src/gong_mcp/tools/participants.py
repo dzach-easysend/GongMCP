@@ -4,7 +4,7 @@ Participant lookup tool for cross-MCP join validation.
 
 from datetime import datetime
 
-from ..gong_client import GongClient
+from ..gong_client import GongClient, check_gong_config
 
 
 async def get_call_participants(
@@ -22,6 +22,10 @@ async def get_call_participants(
     Returns:
         Dict mapping call_id to participant info.
     """
+    gong_error = check_gong_config()
+    if gong_error:
+        return gong_error
+
     if not call_ids:
         return {"error": "No call IDs provided", "participants_by_call": {}}
 

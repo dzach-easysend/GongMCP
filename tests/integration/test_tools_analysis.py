@@ -12,7 +12,7 @@ class TestAnalyzeCalls:
 
     async def test_analyze_calls_direct_mode(self, mock_httpx_client, sample_call_data, sample_transcript_data, monkeypatch):
         """Test analyze_calls with small dataset (direct mode)."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K
         
         mock_httpx_client.reset()
         mock_httpx_client.add_response(
@@ -42,7 +42,8 @@ class TestAnalyzeCalls:
 
     async def test_analyze_calls_async_mode(self, mock_httpx_client, sample_call_data, sample_transcript_data, monkeypatch, temp_jobs_dir):
         """Test analyze_calls with large dataset (async mode)."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "1000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "1")  # 1K - very low to trigger async
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test_anthropic_key")  # required for async path
         
         large_transcript = sample_transcript_data.copy()
         large_transcript["transcript"] = [
@@ -66,6 +67,15 @@ class TestAnalyzeCalls:
             url="https://api.gong.io/v2/calls/transcript",
             json={"callTranscripts": [large_transcript]},
         )
+        # Async job runs in background and calls Anthropic API
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.anthropic.com/v1/messages",
+            json={
+                "content": [{"text": "Test analysis result"}],
+                "usage": {"input_tokens": 1000, "output_tokens": 50},
+            },
+        )
 
         result = await analyze_calls(
             from_date="2024-01-01",
@@ -78,9 +88,66 @@ class TestAnalyzeCalls:
         assert "estimated_batches" in result
         assert "estimated_minutes" in result
 
+    async def test_analyze_calls_async_returns_error_when_no_anthropic_key(
+        self, mock_httpx_client, sample_call_data, sample_transcript_data, monkeypatch
+    ):
+        """When tokens exceed threshold but ANTHROPIC_API_KEY is missing, return informative error (no async job)."""
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "1")  # 1K - would normally trigger async
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+
+        large_transcript = sample_transcript_data.copy()
+        large_transcript["transcript"] = [
+            {
+                "speakerId": "speaker_1",
+                "sentences": [{"start": i * 1000, "text": "x" * 1000} for i in range(100)],
+            }
+        ]
+
+        mock_httpx_client.reset()
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/extensive",
+            json={
+                "calls": [sample_call_data],
+                "records": {"cursor": None, "currentPageSize": 1},
+            },
+        )
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.gong.io/v2/calls/transcript",
+            json={"callTranscripts": [large_transcript]},
+        )
+
+        result = await analyze_calls(
+            from_date="2024-01-01",
+            to_date="2024-01-31",
+            prompt="Analyze these calls",
+        )
+
+        assert result["mode"] == "error"
+        assert "error" in result
+        assert "ANTHROPIC_API_KEY" in result["error"]
+        assert "job_id" not in result
+        assert result["call_count"] == 1
+        assert result["total_tokens"] > 0
+
+    async def test_analyze_calls_returns_error_when_gong_keys_missing(self, monkeypatch):
+        """When Gong credentials are missing, return informative error before any API call."""
+        monkeypatch.delenv("GONG_ACCESS_KEY", raising=False)
+        monkeypatch.delenv("GONG_ACCESS_KEY_SECRET", raising=False)
+
+        result = await analyze_calls(
+            from_date="2024-01-01",
+            to_date="2024-01-31",
+        )
+
+        assert result["mode"] == "error"
+        assert "error" in result
+        assert "GONG_ACCESS_KEY" in result["error"]
+
     async def test_analyze_calls_with_call_ids(self, mock_httpx_client, sample_call_data, sample_transcript_data, monkeypatch):
         """Test analyze_calls with specific call IDs."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K
         
         mock_httpx_client.reset()
         mock_httpx_client.add_response(

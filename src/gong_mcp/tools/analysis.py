@@ -2,6 +2,7 @@
 Analysis MCP tools with smart routing.
 """
 
+import os
 from datetime import datetime, timedelta
 
 from ..analysis.jobs import (
@@ -13,7 +14,7 @@ from ..analysis.jobs import (
 )
 from ..analysis.router import get_routing_decision
 from ..analysis.runner import run_analysis
-from ..gong_client import GongClient
+from ..gong_client import GongClient, check_gong_config
 from ..utils.filters import filter_calls_by_emails
 from ..utils.formatters import build_transcript_json
 
@@ -44,7 +45,13 @@ async def analyze_calls(
         Either:
         - mode=direct: Includes transcripts for inline analysis
         - mode=async: Includes job_id for polling
+        - mode=error: Includes error message (e.g. missing config)
     """
+    # Require Gong credentials before any API calls
+    gong_error = check_gong_config()
+    if gong_error:
+        return {"mode": "error", **gong_error}
+
     # Default date range
     if not to_date:
         to_date = datetime.now().strftime("%Y-%m-%d")
@@ -93,6 +100,26 @@ async def analyze_calls(
 
     # Get routing decision
     decision = get_routing_decision(transcripts)
+    # #region agent log
+    import json as _json; _log_path = "/Users/dannyzach/Documents/gong-mcp-server/.cursor/debug.log"
+    with open(_log_path, "a") as _f: _f.write(_json.dumps({"hypothesisId": "A,B,C", "location": "analysis.py:analyze_calls:routing", "message": "Routing decision", "data": {"mode": decision.get("mode"), "total_tokens": decision.get("total_tokens"), "threshold": str(decision.get("threshold")), "reason": decision.get("reason")}, "timestamp": __import__("time").time(), "sessionId": "debug-session"}) + "\n")
+    # #endregion
+
+    # Async path requires Anthropic API key; return clear error instead of starting a failing job
+    if decision["mode"] == "async" and not (os.getenv("ANTHROPIC_API_KEY") or "").strip():
+        return {
+            "mode": "error",
+            "error": (
+                "Dataset exceeds the inline analysis limit (see DIRECT_LLM_TOKEN_LIMIT). "
+                "Set ANTHROPIC_API_KEY in your MCP config to run batch analysis, "
+                "or narrow the date range or number of calls to fit inline analysis."
+            ),
+            "call_count": decision["call_count"],
+            "total_tokens": decision["total_tokens"],
+            "threshold": decision["threshold"],
+            "from_date": from_date,
+            "to_date": to_date,
+        }
 
     if decision["mode"] == "direct":
         # Small dataset - return transcripts for inline analysis
@@ -101,6 +128,8 @@ async def analyze_calls(
             "transcripts": transcripts,
             "call_count": decision["call_count"],
             "total_tokens": decision["total_tokens"],
+            "threshold": decision["threshold"],
+            "reason": decision["reason"],
             "message": "Transcripts returned - ready for inline analysis",
             "from_date": from_date,
             "to_date": to_date,

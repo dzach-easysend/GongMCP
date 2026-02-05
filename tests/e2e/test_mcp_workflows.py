@@ -42,7 +42,7 @@ class TestDiscoveryWorkflow:
 
     async def test_search_then_analyze_workflow(self, mock_httpx_client, sample_call_data, sample_transcript_data, monkeypatch, temp_jobs_dir):
         """Test workflow: search calls, then analyze them."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K
         
         mock_httpx_client.reset()
         # Search response
@@ -87,8 +87,9 @@ class TestAnalysisWorkflow:
 
     async def test_async_analysis_workflow(self, mock_httpx_client, sample_call_data, sample_transcript_data, monkeypatch, temp_jobs_dir):
         """Test complete async analysis workflow."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "1000")
-        
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "1")  # 1K - very low to trigger async
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test_anthropic_key")  # required for async path
+
         large_transcript = sample_transcript_data.copy()
         large_transcript["transcript"] = [
             {
@@ -110,6 +111,15 @@ class TestAnalysisWorkflow:
             method="POST",
             url="https://api.gong.io/v2/calls/transcript",
             json={"callTranscripts": [large_transcript]},
+        )
+        # Async job runs in background and calls Anthropic API
+        mock_httpx_client.add_response(
+            method="POST",
+            url="https://api.anthropic.com/v1/messages",
+            json={
+                "content": [{"text": "E2E analysis result"}],
+                "usage": {"input_tokens": 1000, "output_tokens": 50},
+            },
         )
 
         # Step 1: Start analysis (should return async mode)

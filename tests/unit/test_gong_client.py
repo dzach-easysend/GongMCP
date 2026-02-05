@@ -3,7 +3,54 @@
 import pytest
 from httpx import HTTPStatusError
 
-from gong_mcp.gong_client import GongClient
+from gong_mcp.gong_client import GongClient, check_gong_config
+
+
+@pytest.mark.unit
+class TestCheckGongConfig:
+    """Test check_gong_config helper."""
+
+    def test_returns_none_when_both_keys_set(self, monkeypatch):
+        """When both credentials are set, return None."""
+        monkeypatch.setenv("GONG_ACCESS_KEY", "key")
+        monkeypatch.setenv("GONG_ACCESS_KEY_SECRET", "secret")
+        assert check_gong_config() is None
+
+    def test_returns_error_when_access_key_missing(self, monkeypatch):
+        """When GONG_ACCESS_KEY is missing, return error dict."""
+        monkeypatch.delenv("GONG_ACCESS_KEY", raising=False)
+        monkeypatch.setenv("GONG_ACCESS_KEY_SECRET", "secret")
+        result = check_gong_config()
+        assert result is not None
+        assert "error" in result
+        assert "GONG_ACCESS_KEY" in result["error"]
+
+    def test_returns_error_when_secret_missing(self, monkeypatch):
+        """When GONG_ACCESS_KEY_SECRET is missing, return error dict."""
+        monkeypatch.setenv("GONG_ACCESS_KEY", "key")
+        monkeypatch.delenv("GONG_ACCESS_KEY_SECRET", raising=False)
+        result = check_gong_config()
+        assert result is not None
+        assert "error" in result
+        assert "GONG_ACCESS_KEY_SECRET" in result["error"]
+
+    def test_returns_error_when_both_missing(self, monkeypatch):
+        """When both are missing, return error dict naming both."""
+        monkeypatch.delenv("GONG_ACCESS_KEY", raising=False)
+        monkeypatch.delenv("GONG_ACCESS_KEY_SECRET", raising=False)
+        result = check_gong_config()
+        assert result is not None
+        assert "error" in result
+        assert "GONG_ACCESS_KEY" in result["error"]
+        assert "GONG_ACCESS_KEY_SECRET" in result["error"]
+
+    def test_returns_error_when_keys_empty_or_whitespace(self, monkeypatch):
+        """When keys are empty or whitespace, treat as missing."""
+        monkeypatch.setenv("GONG_ACCESS_KEY", "  ")
+        monkeypatch.setenv("GONG_ACCESS_KEY_SECRET", "")
+        result = check_gong_config()
+        assert result is not None
+        assert "error" in result
 
 
 @pytest.mark.unit

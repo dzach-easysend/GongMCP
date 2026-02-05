@@ -11,6 +11,33 @@ from typing import Optional
 import httpx
 
 
+def check_gong_config() -> dict | None:
+    """
+    Return an error dict if Gong API credentials are missing.
+
+    Use at the start of any tool that calls the Gong API so callers get
+    a clear message instead of a failed request.
+
+    Returns:
+        Dict with "error" key and message if config is invalid, else None.
+    """
+    access_key = (os.getenv("GONG_ACCESS_KEY") or "").strip()
+    secret = (os.getenv("GONG_ACCESS_KEY_SECRET") or "").strip()
+    if not access_key or not secret:
+        missing = []
+        if not access_key:
+            missing.append("GONG_ACCESS_KEY")
+        if not secret:
+            missing.append("GONG_ACCESS_KEY_SECRET")
+        return {
+            "error": (
+                f"Gong API credentials not configured: {', '.join(missing)} must be set. "
+                "Add them in your MCP client config or environment (see README)."
+            )
+        }
+    return None
+
+
 class GongClient:
     """Async client for Gong API v2."""
 

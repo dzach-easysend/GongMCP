@@ -22,13 +22,13 @@ A Model Context Protocol (MCP) server that exposes Gong call data to Claude with
 
 ## Quick Start (For End Users)
 
-> **📘 New to this?** Check out [INSTALL.md](INSTALL.md) for a super simple, step-by-step guide with screenshots and troubleshooting tips!
+> **📘 New to this?** Check out [install/INSTALL.md](install/INSTALL.md) for a super simple, step-by-step guide with screenshots and troubleshooting tips!
 
 ### Step 1: Install the Package
 
 **Easy way:**
-- **Windows:** Double-click `install.bat`
-- **Mac/Linux:** Double-click `install.sh` or run `./install.sh` in Terminal
+- **Windows:** Double-click `install/install.bat`
+- **Mac/Linux:** Double-click `install/install.sh` or run `./install/install.sh` in Terminal
 
 **Or install manually:**
 - If you received a `.whl` file: `pip install gong_mcp-0.1.0-py3-none-any.whl`
@@ -72,6 +72,8 @@ You'll need three API keys:
 
 That's it! You can now ask Claude about your Gong calls.
 
+**Using Cursor?** See [install/CURSOR_SETUP.md](install/CURSOR_SETUP.md) for connecting the Gong MCP server to Cursor.
+
 ### Troubleshooting
 
 **"Command not found: gong-mcp"**
@@ -83,7 +85,7 @@ That's it! You can now ask Claude about your Gong calls.
 - Make sure Python 3.10 or higher is installed
 - Reinstall: `pip install --upgrade gong-mcp`
 
-**Still having issues?** See [INSTALL.md](INSTALL.md) for detailed troubleshooting steps.
+**Still having issues?** See [install/INSTALL.md](install/INSTALL.md) for detailed troubleshooting steps.
 
 ---
 
@@ -94,7 +96,7 @@ That's it! You can now ask Claude about your Gong calls.
 
 ### Prerequisites
 - **Python 3.10+** (required - the MCP SDK requires Python 3.10 or later)
-- [uv](https://github.com/astral-sh/uv) (recommended) or pip
+- [uv](https://github.com/astral-sh/uv) (recommended), [Rye](https://github.com/astral-sh/rye), or pip
 
 ### Check Python Version
 
@@ -115,30 +117,30 @@ cd gong-mcp-server
 # Option 1: Install with uv (recommended)
 uv sync
 
-# Option 2: Create venv with Python 3.10+ and install
+# Option 2: With Rye
+rye sync
+rye run gong-mcp
+
+# Option 3: Create venv with Python 3.10+ and install
 python3.12 -m venv venv  # or python3.10, python3.11
 source venv/bin/activate
 pip install -e .
 
-# Option 3: Install dependencies directly
+# Option 4: Install dependencies directly
 pip install mcp httpx python-dotenv anthropic
 ```
 
 ### Configuration with .env File
 
-Create a `.env` file:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your credentials:
+Create a `.env` file in the project root with your credentials:
 
 ```bash
 GONG_ACCESS_KEY=your_gong_access_key
 GONG_ACCESS_KEY_SECRET=your_gong_access_key_secret
 ANTHROPIC_API_KEY=your_anthropic_api_key  # For batch analysis
 ```
+
+Optional: `GONG_MCP_JOBS_DIR` can be set to a custom path for async job files (default: `jobs/` in the project root).
 
 ### Claude Desktop Integration (Development Mode)
 
@@ -207,23 +209,40 @@ The `analyze_calls` tool automatically chooses the best approach:
 | 3-8 calls | < 150K tokens | `direct` | Transcripts returned for inline analysis |
 | 10+ calls | > 150K tokens | `async` | Background job started, poll for results |
 
-The threshold is configurable via `DIRECT_TOKEN_THRESHOLD` environment variable.
+### Configuration
+
+The threshold is configurable via `DIRECT_LLM_TOKEN_LIMIT` environment variable:
+
+| Value | Unit | Behavior |
+|-------|------|----------|
+| `150` (default) | K (thousands) | Use direct mode if < 150K tokens |
+| `0` or negative | - | Always pass transcripts to LLM (never use Anthropic API) |
+| `1` | K | Use direct mode only if < 1K tokens (almost always async) |
+
+Example: Set `DIRECT_LLM_TOKEN_LIMIT=0` to always return transcripts directly to Claude for inline analysis, regardless of size.
 
 ## Project Structure
 
 ```
 gong-mcp-server/
-├── pyproject.toml          # Project configuration
+├── pyproject.toml                      # Project configuration
 ├── README.md
-├── .env.example
+├── .env.example                        # Environment variables template
+├── claude_desktop_config.json.example  # Claude Desktop config template
+├── install/                            # Installation scripts and docs
+│   ├── INSTALL.md                      # End-user installation guide
+│   ├── install.sh / install.bat        # Installation scripts
+│   ├── CURSOR_SETUP.md                 # Cursor-specific setup
+│   └── PACKAGING.md                    # Distribution guide
 ├── src/
 │   └── gong_mcp/
-│       ├── server.py       # MCP server entry point
-│       ├── gong_client.py  # Gong API client
-│       ├── tools/          # MCP tool implementations
-│       ├── analysis/       # Smart routing & batch processing
-│       └── utils/          # Formatters & filters
-└── jobs/                   # Job status & results storage
+│       ├── server.py                   # MCP server entry point
+│       ├── gong_client.py              # Gong API client
+│       ├── tools/                      # MCP tool implementations
+│       ├── analysis/                   # Smart routing & batch processing
+│       └── utils/                      # Formatters & filters
+├── tests/                              # Unit, integration, and e2e tests
+└── jobs/                               # Job status & results (created at runtime)
 ```
 
 ## API Reference
@@ -269,6 +288,17 @@ uv run gong-mcp
 
 # Run with Python
 python -m gong_mcp.server
+
+# Run tests (unit, integration, e2e)
+./run_tests.sh
+# Or with pytest directly:
+uv sync --extra test && uv run pytest tests/ -v
+# With coverage:
+uv run pytest --cov=gong_mcp --cov-report=term-missing --cov-report=html tests/
+
+# Lint with Ruff
+uv run ruff check src/ tests/
+uv run ruff format src/ tests/
 ```
 
 </details>
@@ -303,10 +333,10 @@ To package this MCP server for distribution without exposing secrets:
 
 4. **Distribute:**
    - Share `dist/gong_mcp-*.whl` or `dist/gong_mcp-*.tar.gz`
-   - Include `README.md` and `PACKAGING.md` for installation instructions
+   - Include `README.md` and `install/PACKAGING.md` for installation instructions
    - Users must configure their own `.env` file with their credentials
 
-See [PACKAGING.md](PACKAGING.md) for detailed packaging instructions.
+See [install/PACKAGING.md](install/PACKAGING.md) for detailed packaging instructions.
 
 </details>
 

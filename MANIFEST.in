@@ -1,12 +1,13 @@
 # Include necessary files
 include README.md
-include INSTALL.md
 include LICENSE
 include .env.example
 include claude_desktop_config.json.example
 include pyproject.toml
-include install.sh
-include install.bat
+include install/install.sh
+include install/install.bat
+include install/INSTALL.md
+include install/HOW_TO_SHARE.md
 
 # Include source code
 recursive-include src *.py

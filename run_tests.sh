@@ -25,12 +25,8 @@ else
 fi
 
 echo ""
-echo "🧪 Running test suite..."
-python3 -m pytest tests/ -v
-
-echo ""
-echo "📊 Running tests with coverage..."
-python3 -m pytest --cov=gong_mcp --cov-report=term-missing --cov-report=html tests/
+echo "🧪 Running test suite with coverage..."
+python3 -m pytest tests/ -v --cov=gong_mcp --cov-report=term-missing --cov-report=html
 
 echo ""
 echo "✅ Test suite complete!"

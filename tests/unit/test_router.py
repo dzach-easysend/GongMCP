@@ -77,21 +77,39 @@ class TestGetDirectThreshold:
 
     def test_get_direct_threshold_default(self, monkeypatch):
         """Test default threshold when env var not set."""
-        monkeypatch.delenv("DIRECT_TOKEN_THRESHOLD", raising=False)
+        monkeypatch.delenv("DIRECT_LLM_TOKEN_LIMIT", raising=False)
         threshold = get_direct_threshold()
-        assert threshold == 150_000
+        assert threshold == 150_000  # 150K default
 
     def test_get_direct_threshold_from_env(self, monkeypatch):
-        """Test threshold from environment variable."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "200000")
+        """Test threshold from environment variable (K units)."""
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "200")  # 200K
         threshold = get_direct_threshold()
         assert threshold == 200_000
 
     def test_get_direct_threshold_invalid_env(self, monkeypatch):
         """Test threshold with invalid env var falls back to default."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "invalid")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "invalid")
         threshold = get_direct_threshold()
         assert threshold == 150_000
+
+    def test_get_direct_threshold_zero_returns_infinity(self, monkeypatch):
+        """Test that zero value returns infinity (always direct mode)."""
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "0")
+        threshold = get_direct_threshold()
+        assert threshold == float("inf")
+
+    def test_get_direct_threshold_negative_returns_infinity(self, monkeypatch):
+        """Test that negative values return infinity (always direct mode)."""
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "-1")
+        threshold = get_direct_threshold()
+        assert threshold == float("inf")
+
+    def test_get_direct_threshold_small_value(self, monkeypatch):
+        """Test small K value works correctly."""
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "1")  # 1K = 1000 tokens
+        threshold = get_direct_threshold()
+        assert threshold == 1000
 
 
 @pytest.mark.unit
@@ -100,13 +118,13 @@ class TestShouldUseDirectMode:
 
     def test_should_use_direct_mode_small_dataset(self, monkeypatch):
         """Test that small datasets use direct mode."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K
         small_transcripts = [{"text": "small", "metadata": {}}] * 5
         assert should_use_direct_mode(small_transcripts) is True
 
     def test_should_use_direct_mode_large_dataset(self, monkeypatch):
         """Test that large datasets use async mode."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K
         # Create transcripts that exceed threshold
         large_transcript = {"text": "x" * 50000, "metadata": {}}  # ~12.5k tokens each
         large_transcripts = [large_transcript] * 15  # ~187.5k tokens total
@@ -114,7 +132,7 @@ class TestShouldUseDirectMode:
 
     def test_should_use_direct_mode_at_threshold(self, monkeypatch):
         """Test behavior at threshold boundary."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K
         # Create transcripts exactly at threshold
         transcript = {"text": "x" * 600000, "metadata": {}}  # ~150k tokens
         transcripts = [transcript]
@@ -124,6 +142,21 @@ class TestShouldUseDirectMode:
     def test_should_use_direct_mode_empty(self):
         """Test direct mode with empty transcripts."""
         assert should_use_direct_mode([]) is True
+
+    def test_should_use_direct_mode_always_true_when_limit_zero(self, monkeypatch):
+        """Test that all transcripts use direct mode when limit is 0."""
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "0")
+        # Even large transcripts should use direct mode
+        large_transcript = {"text": "x" * 100000, "metadata": {}}
+        large_transcripts = [large_transcript] * 20  # Very large dataset
+        assert should_use_direct_mode(large_transcripts) is True
+
+    def test_should_use_direct_mode_always_true_when_limit_negative(self, monkeypatch):
+        """Test that all transcripts use direct mode when limit is negative."""
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "-5")
+        large_transcript = {"text": "x" * 100000, "metadata": {}}
+        large_transcripts = [large_transcript] * 20
+        assert should_use_direct_mode(large_transcripts) is True
 
 
 @pytest.mark.unit
@@ -186,7 +219,7 @@ class TestGetRoutingDecision:
 
     def test_get_routing_decision_direct_mode(self, monkeypatch):
         """Test routing decision for direct mode."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K
         small_transcripts = [{"text": "small", "metadata": {}}] * 3
         decision = get_routing_decision(small_transcripts)
 
@@ -198,7 +231,7 @@ class TestGetRoutingDecision:
 
     def test_get_routing_decision_async_mode(self, monkeypatch):
         """Test routing decision for async mode."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K
         large_transcript = {"text": "x" * 50000, "metadata": {}}
         large_transcripts = [large_transcript] * 15
         decision = get_routing_decision(large_transcripts)
@@ -221,10 +254,21 @@ class TestGetRoutingDecision:
 
     def test_get_routing_decision_metadata(self, monkeypatch):
         """Test that routing decision includes all metadata."""
-        monkeypatch.setenv("DIRECT_TOKEN_THRESHOLD", "150000")
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "150")  # 150K
         transcripts = [{"text": "test", "metadata": {}}]
         decision = get_routing_decision(transcripts)
 
         required_keys = ["mode", "call_count", "total_tokens", "threshold", "reason"]
         for key in required_keys:
             assert key in decision
+
+    def test_get_routing_decision_forced_direct_mode(self, monkeypatch):
+        """Test routing decision when limit is 0 (forced direct mode)."""
+        monkeypatch.setenv("DIRECT_LLM_TOKEN_LIMIT", "0")
+        large_transcript = {"text": "x" * 100000, "metadata": {}}
+        large_transcripts = [large_transcript] * 20
+        decision = get_routing_decision(large_transcripts)
+
+        assert decision["mode"] == "direct"
+        assert decision["threshold"] == "unlimited"
+        assert "forced" in decision["reason"].lower()

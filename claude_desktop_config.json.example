@@ -1,12 +1,11 @@
 {
   "mcpServers": {
     "gong": {
-      "command": "uv",
-      "args": ["--directory", "/Users/dannyzach/Documents/gong-mcp-server", "run", "gong-mcp"],
+      "command": "gong-mcp",
       "env": {
-        "GONG_ACCESS_KEY": "your_gong_access_key",
-        "GONG_ACCESS_KEY_SECRET": "your_gong_access_key_secret",
-        "ANTHROPIC_API_KEY": "your_anthropic_api_key"
+        "GONG_ACCESS_KEY": "your_gong_access_key_here",
+        "GONG_ACCESS_KEY_SECRET": "your_gong_access_key_secret_here",
+        "ANTHROPIC_API_KEY": "your_anthropic_api_key_here"
       }
     }
   }

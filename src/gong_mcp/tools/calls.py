@@ -6,7 +6,7 @@ Provides list_calls, get_transcript, and search_calls functionality.
 
 from datetime import datetime, timedelta
 
-from ..gong_client import GongClient
+from ..gong_client import GongClient, check_gong_config
 from ..utils.filters import filter_calls_by_emails
 from ..utils.formatters import build_transcript_json, build_transcript_text
 
@@ -27,6 +27,10 @@ async def list_calls(
     Returns:
         Dict with calls list and metadata.
     """
+    gong_error = check_gong_config()
+    if gong_error:
+        return gong_error
+
     # Default date range: last 7 days
     if not to_date:
         to_date = datetime.now().strftime("%Y-%m-%d")
@@ -80,29 +84,22 @@ async def get_transcript(
     Returns:
         Dict with transcript content.
     """
+    gong_error = check_gong_config()
+    if gong_error:
+        return gong_error
+
     async with GongClient() as client:
-        # First get call metadata
-        # We need to search for this specific call
-        # Use a wide date range since we don't know when the call was
-        from_datetime = "2020-01-01T00:00:00Z"
-        to_datetime = datetime.now().strftime("%Y-%m-%dT23:59:59Z")
-
-        all_calls = await client.get_all_calls(from_datetime, to_datetime)
-
-        call_data = None
-        for call in all_calls:
-            if call.get("metaData", {}).get("id") == call_id:
-                call_data = call
-                break
-
-        if not call_data:
-            return {"error": f"Call not found: {call_id}"}
-
-        # Get transcript
+        # Fetch transcript directly by call_id - no need to search through all calls
         transcript_data = await client.get_call_transcript(call_id)
 
         if "error" in transcript_data:
             return {"error": transcript_data["error"]}
+
+        # Build minimal call_data for formatters (they need metaData structure)
+        call_data = {
+            "metaData": {"id": call_id},
+            "parties": []
+        }
 
         if format == "json":
             return build_transcript_json(call_data, transcript_data)
@@ -138,6 +135,10 @@ async def search_calls(
     Returns:
         Dict with matching calls and metadata.
     """
+    gong_error = check_gong_config()
+    if gong_error:
+        return gong_error
+
     # Default date range: last 30 days for search
     if not to_date:
         to_date = datetime.now().strftime("%Y-%m-%d")
